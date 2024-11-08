@@ -311,8 +311,6 @@ namespace RVO
             obstacles_ = new List<Obstacle>();
             globalTime_ = 0.0f;
             timeStep_ = 0.1f;
-
-            SetNumWorkers(0);
         }
 
         /**
@@ -323,46 +321,19 @@ namespace RVO
         public float doStep()
         {
             updateDeleteAgent();
-
-            if (workers_ == null)
-            {
-                workers_ = new Worker[numWorkers_];
-                doneEvents_ = new ManualResetEvent[workers_.Length];
-                workerAgentCount_ = getNumAgents();
-
-                for (int block = 0; block < workers_.Length; ++block)
-                {
-                    doneEvents_[block] = new ManualResetEvent(false);
-                    workers_[block] = new Worker(block * getNumAgents() / workers_.Length, (block + 1) * getNumAgents() / workers_.Length, doneEvents_[block]);
-                }
-            }
-
-            if (workerAgentCount_ != getNumAgents())
-            {
-                workerAgentCount_ = getNumAgents();
-                for (int block = 0; block < workers_.Length; ++block)
-                {
-                    workers_[block].config(block * getNumAgents() / workers_.Length, (block + 1) * getNumAgents() / workers_.Length);
-                }
-            }
-
+            
             kdTree_.buildAgentTree();
-
-            for (int block = 0; block < workers_.Length; ++block)
+            
+            for (int i = 0; i < agents_.Count; ++i)
             {
-                doneEvents_[block].Reset();
-                ThreadPool.QueueUserWorkItem(workers_[block].step);
+                Simulator.Instance.agents_[i].computeNeighbors();
+                Simulator.Instance.agents_[i].computeNewVelocity();
             }
-
-            WaitHandle.WaitAll(doneEvents_);
-
-            for (int block = 0; block < workers_.Length; ++block)
+            
+            for (int i = 0; i < agents_.Count; ++i)
             {
-                doneEvents_[block].Reset();
-                ThreadPool.QueueUserWorkItem(workers_[block].update);
+                Simulator.Instance.agents_[i].update();
             }
-
-            WaitHandle.WaitAll(doneEvents_);
 
             globalTime_ += timeStep_;
 
@@ -804,25 +775,7 @@ namespace RVO
         {
             globalTime_ = globalTime;
         }
-
-        /**
-         * <summary>设置工作线程的数量。</summary>
-         *
-         * <param name="numWorkers">工作线程的数量。</param>
-         */
-        public void SetNumWorkers(int numWorkers)
-        {
-            numWorkers_ = numWorkers;
-
-            if (numWorkers_ <= 0)
-            {
-                int completionPorts;
-                ThreadPool.GetMinThreads(out numWorkers_, out completionPorts);
-            }
-            workers_ = null;
-            workerAgentCount_ = 0;
-        }
-
+        
         /**
          * <summary>设置仿真的时间步长。</summary>
          *

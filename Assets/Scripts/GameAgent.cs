@@ -36,7 +36,7 @@ public class GameAgent : MonoBehaviour
         }
 
         Vector2 goalVector = GameMainManager.Instance.mousePosition - Simulator.Instance.getAgentPosition(sid);
-        if (RVOMath.absSq(goalVector) > 1.0f)
+        if (RVOMath.absSq(goalVector) > 1.0f) 
         {
             goalVector = RVOMath.normalize(goalVector);
         }
